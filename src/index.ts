@@ -20,6 +20,8 @@ import { mcpLogger } from "./logger.js";
 import { status } from "./core/status.js";
 import { target } from "./core/target.js";
 import { context } from "./core/context.js";
+import { plan, type Operation } from "./core/plan.js";
+import { apply } from "./core/apply.js";
 import { PLANNED, notImplemented } from "./core/stubs.js";
 
 const PORT = Number(process.env.TIDY_PORT ?? 9240);
@@ -27,7 +29,7 @@ const PORT = Number(process.env.TIDY_PORT ?? 9240);
 const bridge = new FigmaBridge(PORT);
 
 const server = withIdentity(
-  new McpServer({ name: MCP_ID, version: "0.1.0" }),
+  new McpServer({ name: MCP_ID, version: "0.2.0" }),
 );
 
 const json = (value: unknown) => ({
@@ -78,6 +80,59 @@ server.tool(
   async ({ detail, include, figmaFile }) => json(await context(bridge, { detail, include, figmaFile })),
 );
 
+const operationSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("renameVariable"),
+    target: z.string().describe("Variable name or id to rename."),
+    newName: z.string().describe("The new name."),
+  }),
+  z.object({
+    type: z.literal("setVariableDescription"),
+    target: z.string().describe("Variable name or id."),
+    description: z.string().describe("The description to set."),
+  }),
+  z.object({
+    type: z.literal("deleteVariable"),
+    target: z.string().describe("Variable name or id to delete."),
+  }),
+]);
+
+server.tool(
+  "tidy_plan",
+  "Build a reviewable plan for a set of changes, and return a hash for it. Never mutates anything. For each target it reports what depends on it (alias references and layer bindings) and flags the risks, including refusing to issue a hash at all when an operation would break something. Pair with tidy_apply, which is the only tool that can execute the plan.",
+  {
+    operations: z
+      .array(operationSchema)
+      .min(1)
+      .describe("The changes to plan. Keep one plan to one coherent intent."),
+    intent: z
+      .string()
+      .optional()
+      .describe("One line on why. Recorded in the decision entry when the plan is applied."),
+    figmaFile: z.string().optional().describe("Run against a specific connected file."),
+  },
+  async ({ operations, intent, figmaFile }) =>
+    json(await plan(bridge, { operations: operations as Operation[], intent, figmaFile })),
+);
+
+server.tool(
+  "tidy_apply",
+  "Execute a plan produced by tidy_plan, identified by its hash. This is the only tool in tidy-core that changes anything. It refuses plans it did not generate, plans that have expired, and plans whose targets have changed since the plan was built. On success it writes a decision entry recording what changed and why.",
+  {
+    planHash: z.string().describe("The planHash returned by tidy_plan."),
+    confirm: z
+      .boolean()
+      .describe("Must be true. Present so that applying is always a deliberate second step."),
+    note: z
+      .string()
+      .optional()
+      .describe("Why this was applied. Goes into the decision record verbatim."),
+    figmaFile: z.string().optional().describe("Run against a specific connected file."),
+  },
+  async ({ planHash, confirm, note, figmaFile }) =>
+    json(await apply(bridge, { planHash, confirm, note, figmaFile })),
+);
+
 // ---------------------------------------------------------------------------
 // Specified, not yet built
 //
@@ -104,7 +159,7 @@ async function main(): Promise<void> {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  mcpLogger.info({ tools: 3 + PLANNED.length }, "tidy-core ready");
+  mcpLogger.info({ tools: 5 + PLANNED.length }, "tidy-core ready");
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

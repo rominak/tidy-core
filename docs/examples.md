@@ -43,6 +43,83 @@ Then `tidy_target` with `"Foundation"` pins it. Names match exactly first, then 
 
 With two files open and no target, commands **fail** rather than picking one. That is deliberate. Silently writing to the wrong file is the failure this prevents.
 
+### Change a token safely
+
+```
+Plan renaming bg-primary to surface-primary. It describes the colour,
+not the role.
+```
+
+`tidy_plan` never touches the file. It reports what depends on the token and what could go wrong:
+
+```json
+{
+  "status": "ready",
+  "planHash": "94a0bacd5f74...",
+  "estimatedBudget": {
+    "aliasReferences": 2,
+    "nodeBindings": 7,
+    "bindingsExact": true
+  },
+  "risks": [
+    {
+      "level": "medium",
+      "message": "\"bg-primary\" is used in 9 places. Check code and docs that refer to it by name."
+    }
+  ],
+  "nextStep": "To execute: tidy_apply with planHash \"94a0...\" and confirm: true."
+}
+```
+
+Then:
+
+```
+Apply that plan. Agreed in the design system sync.
+```
+
+The note becomes the rationale in a decision entry written automatically:
+
+```json
+{
+  "status": "applied",
+  "decision": {
+    "subject": "Name described the colour, not the role",
+    "decision": "applied: Rename \"bg-primary\" to \"surface-primary\"",
+    "rationale": "Agreed in the design system sync."
+  }
+}
+```
+
+### What it refuses to do
+
+This is the part that matters more than the happy path.
+
+**Deleting something still in use** never gets a hash at all:
+
+```
+"bg-primary" is still used in 9 places (2 alias references, 7 layer
+bindings). Deleting it breaks them. Repoint them first.
+```
+
+**Applying without confirming** tells you what you were about to do:
+
+```
+tidy_apply needs confirm: true. This plan will: Rename "bg-primary"
+to "surface-primary".
+```
+
+**Applying a plan after the file moved on** stops and says what changed:
+
+```
+The file changed since this plan was built, so it was not applied.
+"bg-primary" was renamed to "surface-primary". Run tidy_plan again
+to see the current picture.
+```
+
+That last one is the whole reason the hash exists. Between planning and applying, somebody else may have touched the very token you are about to change. Applying anyway would do something nobody reviewed. It also means a plan cannot be replayed twice by accident.
+
+Plans expire after an hour, for the same reason.
+
 ---
 
 ## Planned
@@ -50,14 +127,14 @@ With two files open and no target, commands **fail** rather than picking one. Th
 ### The full loop 🚧
 
 ```
-1. What should I clean up first?     → tidy_cleanup
-2. What breaks if I fix #1?          → tidy_impact
-3. Plan it, dry run                  → tidy_plan   → planHash a3f9
-4. Apply plan a3f9                   → tidy_apply
-5. What moved in the score?          → tidy_health
+1. What should I clean up first?     → tidy_cleanup  🚧
+2. What breaks if I fix #1?          → tidy_impact   🚧
+3. Plan it                           → tidy_plan     ✅
+4. Apply plan a3f9                   → tidy_apply    ✅
+5. What moved in the score?          → tidy_health   🚧
 ```
 
-Step 4 writes the decision entry by itself. Step 5 has a delta because the previous loop's step 5 captured a snapshot. Nobody scheduled anything.
+Steps 3 and 4 work today. You supply the operations yourself for now. Once `tidy_cleanup` and `tidy_impact` land, the findings feed straight into `tidy_plan` instead.
 
 Six months later:
 
@@ -65,7 +142,7 @@ Six months later:
 Why did we rename our primary background token?
 ```
 
-`tidy_decisions` answers with the plan, the file, the date, the rationale, and the health delta it caused.
+`tidy_decisions` will answer with the plan, the file, the date, the rationale, and the health delta it caused. The entries are already being written on every apply, so the record is filling up now, before the tool that reads it exists.
 
 ### Size a rename before committing to it 🚧
 

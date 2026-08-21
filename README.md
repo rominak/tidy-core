@@ -4,7 +4,7 @@
 
 Design system governance over the Model Context Protocol. Thirteen tools, not a hundred.
 
-> **Status: v0.1.0, early.** Three of the thirteen tools are implemented. The other ten are registered and will tell you they are not built yet rather than returning an empty result. See [the build sequence](docs/spec.md#build-sequence).
+> **Status: v0.2.0, early.** Five of the thirteen tools are implemented, including the plan/apply pair that makes changes reviewable. The other eight are registered and will tell you they are not built yet rather than returning an empty result. See [the build sequence](docs/spec.md#build-sequence).
 
 ---
 
@@ -109,7 +109,7 @@ More in [docs/examples.md](docs/examples.md).
 
 **It tags every response.** Real setups run several Figma MCP servers side by side. Every response carries `_mcp: "tidy-core"` and every error is prefixed `[tidy-core]`, so another server's failure is never blamed on this one.
 
-**Unbuilt tools say so.** The ten planned tools are registered and return an explicit refusal naming what they will do. A tool that silently returns `{}` is worse than one that admits it does not exist yet.
+**Unbuilt tools say so.** The eight planned tools are registered and return an explicit refusal naming what they will do. A tool that silently returns `{}` is worse than one that admits it does not exist yet.
 
 **It will not kill your other tools.** If port 9240 is busy it moves to the next free one in 9240 to 9249, which the plugin scans anyway. It deliberately does not terminate whatever was holding the port.
 
@@ -127,8 +127,8 @@ More in [docs/examples.md](docs/examples.md).
 | `tidy_drift` | 🚧 | Does design still match code, Storybook, docs? |
 | `tidy_impact` | 🚧 | What breaks if I change this? |
 | `tidy_cleanup` | 🚧 | What should I fix first? |
-| `tidy_plan` | 🚧 | Give me a safe, reviewable sequence of changes. |
-| `tidy_apply` | 🚧 | Execute the plan I reviewed. |
+| `tidy_plan` | ✅ | Give me a safe, reviewable sequence of changes. |
+| `tidy_apply` | ✅ | Execute the plan I reviewed. |
 | `tidy_decisions` | 🚧 | Why is it like this, and do our decisions contradict? |
 | `tidy_record_decision` | 🚧 | Capture why we did this. |
 | `tidy_gate` | 🚧 | Should this change be allowed to merge? |

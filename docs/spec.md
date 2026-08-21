@@ -118,14 +118,14 @@ A ranked, evidence-backed worklist. Ghost variables, dead styles, unused tokens,
 
 Params: `limit`, `kind`, `minImpact`.
 
-### 9. `tidy_plan` 🚧 planned
+### 9. `tidy_plan` ✅ implemented
 **Question:** Give me a safe, reviewable sequence of changes.
 
 Turns a finding into an ordered, dry-runnable mutation plan. Returns a **plan hash**. Never mutates.
 
 Returns `{ planHash, operations[], estimatedBudget, risks[] }`.
 
-### 10. `tidy_apply` 🚧 planned
+### 10. `tidy_apply` ✅ implemented
 **Question:** Execute the plan I reviewed.
 
 The **only** mutation tool. Takes a `planHash` and nothing else. Refuses any plan it did not generate, and any plan whose hash no longer matches current file state.
@@ -173,7 +173,7 @@ This is where governance becomes enforcement. A document nobody reads versus a b
 ## Build sequence
 
 1. ✅ Bridge, file targeting, identity tagging, `tidy_status`, `tidy_target`, `tidy_context`.
-2. Plan hashing and the `tidy_plan` / `tidy_apply` contract. The only genuinely new engineering.
-3. Auto-decision-write inside `tidy_apply`.
+2. ✅ Plan hashing and the `tidy_plan` / `tidy_apply` contract.
+3. ✅ Auto-decision-write inside `tidy_apply`.
 4. Snapshot store and auto-capture, unlocking `tidy_health` and `tidy_adoption`.
 5. `tidy_gate` for CI.

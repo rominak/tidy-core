@@ -53,20 +53,6 @@ export const PLANNED: Planned[] = [
     spec: "#8-tidy_cleanup",
   },
   {
-    name: "tidy_plan",
-    description:
-      "Turn a finding into an ordered, dry-runnable mutation plan. Returns a plan hash. Never mutates.",
-    returns: "planHash, operations, estimated budget, risks",
-    spec: "#9-tidy_plan",
-  },
-  {
-    name: "tidy_apply",
-    description:
-      "The only mutation tool. Applies a plan by hash, refusing any plan it did not generate or whose hash no longer matches file state. Writes a decision entry automatically.",
-    returns: "per-operation result, resulting health delta, decision id",
-    spec: "#10-tidy_apply",
-  },
-  {
     name: "tidy_decisions",
     description:
       "Search the decision record, find components with no recorded rationale, and detect decisions that contradict each other. Read-only.",
