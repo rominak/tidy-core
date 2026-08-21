@@ -139,12 +139,19 @@ Full definitions in [docs/spec.md](docs/spec.md).
 
 ```bash
 npm install
-npm run build
+npm run build     # emits dist/, excludes tests
 npm test
-npm run dev      # watch mode
+npm run typecheck # checks everything including tests
+npm run dev       # watch mode
 ```
 
 Everything runs locally. No data leaves your machine, and there is no telemetry.
+
+## Learn more
+
+tidy-core comes out of ongoing work on design systems and AI at **[aidesign.guide](https://aidesign.guide)**, where the thinking behind it is written up in more depth: how design systems get measured, where AI actually helps, and where it quietly makes things worse.
+
+Built by [Romina Kavčič](https://github.com/rominak).
 
 ## License
 

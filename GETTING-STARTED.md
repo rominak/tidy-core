@@ -317,6 +317,10 @@ That is fine, nothing is wrong. If something else on your computer is already us
 
 ---
 
+## Where to learn more
+
+For the wider thinking behind this, how design systems get measured and where AI genuinely helps, see **[aidesign.guide](https://aidesign.guide)**.
+
 ## Still stuck?
 
 Open an issue on the repository with:
