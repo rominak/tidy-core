@@ -41,12 +41,29 @@ It is designed to sit **alongside** an authoring MCP server, not replace one. Us
 
 ## Install
 
-Requires Node 18+ and **Figma Desktop**. A browser tab cannot reach a localhost WebSocket.
+> ### 👋 New to this?
+>
+> **[Read the step-by-step guide instead →](GETTING-STARTED.md)**
+>
+> It assumes no coding experience, explains every term, and tells you what should happen after each step. About 20 minutes.
+
+The short version, for people who have set up an MCP server before.
+
+Requires Node 18+ and **Figma Desktop**. A browser tab cannot reach a localhost WebSocket, and there is no workaround.
+
+Not on npm yet, so clone and build:
+
+```bash
+git clone https://github.com/rominak/tidy-core.git
+cd tidy-core
+npm install
+npm run build
+```
 
 **Claude Code**
 
 ```bash
-claude mcp add tidy-core -s user -- npx -y tidy-core@latest
+claude mcp add tidy-core -s user -- node /absolute/path/to/tidy-core/dist/index.js
 ```
 
 **Cursor, Windsurf, Claude Desktop**
@@ -55,8 +72,8 @@ claude mcp add tidy-core -s user -- npx -y tidy-core@latest
 {
   "mcpServers": {
     "tidy-core": {
-      "command": "npx",
-      "args": ["-y", "tidy-core@latest"]
+      "command": "node",
+      "args": ["/absolute/path/to/tidy-core/dist/index.js"]
     }
   }
 }
@@ -93,6 +110,8 @@ More in [docs/examples.md](docs/examples.md).
 **It tags every response.** Real setups run several Figma MCP servers side by side. Every response carries `_mcp: "tidy-core"` and every error is prefixed `[tidy-core]`, so another server's failure is never blamed on this one.
 
 **Unbuilt tools say so.** The ten planned tools are registered and return an explicit refusal naming what they will do. A tool that silently returns `{}` is worse than one that admits it does not exist yet.
+
+**It will not kill your other tools.** If port 9240 is busy it moves to the next free one in 9240 to 9249, which the plugin scans anyway. It deliberately does not terminate whatever was holding the port.
 
 **Reads will write.** Once `tidy_health` and `tidy_adoption` land, every call persists a snapshot. That is what makes the second run able to show a delta without anyone scheduling anything. A `noCapture` flag will exist for read-only CI checks. See [the reasoning](docs/spec.md#the-record-starts-on-install).
 

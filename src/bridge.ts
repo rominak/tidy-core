@@ -44,56 +44,47 @@ export class FigmaBridge extends EventEmitter {
     this.port = preferredPort;
   }
 
-  /**
-   * Start the WebSocket server on the preferred port.
-   * If the port is in use, attempts to kill the stale process first.
-   * Never silently falls back to a different port.
-   */
-  async start(): Promise<number> {
-    try {
-      await this.startOnPort(this.port);
-      bridgeLogger.info({ port: this.port }, "WebSocket bridge listening");
-      return this.port;
-    } catch (e: unknown) {
-      const err = e as NodeJS.ErrnoException;
-      if (err.code === "EADDRINUSE") {
-        bridgeLogger.warn({ port: this.port }, "Port in use — killing stale process");
-        await this.killProcessOnPort(this.port);
-        // Wait briefly for OS to release the port
-        await new Promise((r) => setTimeout(r, 500));
-        try {
-          await this.startOnPort(this.port);
-          bridgeLogger.info({ port: this.port }, "WebSocket bridge listening (after reclaim)");
-          return this.port;
-        } catch (retryErr: unknown) {
-          throw new Error(
-            `Port ${this.port} still in use after killing stale process. ` +
-            `Run: lsof -i :${this.port} to investigate.`
-          );
-        }
-      }
-      throw e;
-    }
-  }
+  /** How many ports past the preferred one to try. The plugin scans the same range. */
+  private static readonly PORT_SCAN = 10;
 
   /**
-   * Kill whatever process is holding the given port.
-   * Skipped in test environments to avoid killing the test runner.
+   * Start the WebSocket server, moving to the next free port if the preferred
+   * one is taken.
+   *
+   * It deliberately does not kill whatever holds the port. On your own machine
+   * that is usually your own stale instance, but it might equally be someone
+   * else's tool, and a design system server has no business sending SIGKILL to
+   * a process it cannot identify. The plugin scans the whole range anyway, so
+   * moving over costs nothing.
    */
-  private async killProcessOnPort(port: number): Promise<void> {
-    if (process.env.VITEST || process.env.NODE_ENV === "test") {
-      bridgeLogger.warn({ port }, "Skipping port kill in test environment");
-      return;
-    }
-    const { exec } = await import("child_process");
-    return new Promise((resolve) => {
-      exec(`lsof -ti :${port} | xargs kill -9 2>/dev/null`, (err) => {
-        if (err) {
-          bridgeLogger.warn({ port, err: err.message }, "Could not kill process on port");
+  async start(): Promise<number> {
+    const first = this.port;
+    const last = first + FigmaBridge.PORT_SCAN - 1;
+
+    for (let candidate = first; candidate <= last; candidate++) {
+      try {
+        await this.startOnPort(candidate);
+        this.port = candidate;
+        if (candidate !== first) {
+          bridgeLogger.info(
+            { port: candidate, preferred: first },
+            "Preferred port was busy, listening on the next free one",
+          );
+        } else {
+          bridgeLogger.info({ port: candidate }, "WebSocket bridge listening");
         }
-        resolve();
-      });
-    });
+        return candidate;
+      } catch (e: unknown) {
+        const err = e as NodeJS.ErrnoException;
+        if (err.code !== "EADDRINUSE") throw e;
+        this.wss = null;
+      }
+    }
+
+    throw new Error(
+      `Every port from ${first} to ${last} is in use, so tidy-core cannot start. ` +
+        `Close another copy of it if one is running, or set TIDY_PORT to a free port.`,
+    );
   }
 
   private startOnPort(port: number): Promise<void> {

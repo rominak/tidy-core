@@ -205,3 +205,37 @@ describe("FigmaBridge routing", () => {
     await expect(bridge.sendCommand("noop", {}, 2000)).rejects.toThrow(/No Figma plugin connected/);
   });
 });
+
+describe("FigmaBridge port selection", () => {
+  const base = 19800 + Math.floor(Math.random() * 100) * 10;
+
+  it("moves to the next free port instead of killing the holder", async () => {
+    const first = new FigmaBridge(base);
+    const firstPort = await first.start();
+    expect(firstPort).toBe(base);
+
+    const second = new FigmaBridge(base);
+    const secondPort = await second.start();
+    expect(secondPort).toBe(base + 1);
+
+    // the original is untouched, which is the whole point
+    expect(first.getStatus().port).toBe(base);
+
+    await first.stop();
+    await second.stop();
+  });
+
+  it("throws a readable error when the whole range is taken", async () => {
+    const held = [];
+    for (let i = 0; i < 10; i++) {
+      const b = new FigmaBridge(base + 100 + i);
+      await b.start();
+      held.push(b);
+    }
+
+    const blocked = new FigmaBridge(base + 100);
+    await expect(blocked.start()).rejects.toThrow(/Every port from .* is in use/);
+
+    for (const b of held) await b.stop();
+  });
+});
