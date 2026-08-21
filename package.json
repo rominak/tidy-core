@@ -1,0 +1,48 @@
+{
+  "name": "tidy-core",
+  "version": "0.1.0",
+  "description": "Design system governance over MCP. Thirteen tools, not a hundred.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "tidy-core": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "plugin",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "figma",
+    "design-systems",
+    "design-tokens",
+    "governance",
+    "model-context-protocol"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "pino": "^10.3.1",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.0.0"
+  }
+}

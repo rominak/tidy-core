@@ -1,0 +1,24 @@
+{
+  "name": "tidy-core bridge",
+  "id": "tidy-core-bridge",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": [
+      "ws://localhost:9240",
+      "ws://localhost:9241",
+      "ws://localhost:9242",
+      "ws://localhost:9243",
+      "ws://localhost:9244",
+      "ws://localhost:9245",
+      "ws://localhost:9246",
+      "ws://localhost:9247",
+      "ws://localhost:9248",
+      "ws://localhost:9249"
+    ],
+    "reasoning": "Connects to the local tidy-core MCP server over WebSocket on ports 9240-9249. No data leaves the machine."
+  },
+  "permissions": ["teamlibrary"]
+}

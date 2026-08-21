@@ -1,0 +1,116 @@
+<style>
+  body {
+    font: 12px -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    margin: 0;
+    padding: 16px;
+    color: #111;
+  }
+  h1 { font-size: 13px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .file { color: #666; margin-bottom: 12px; word-break: break-all; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 999px;
+    font-weight: 500; font-size: 11px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .on  { background: #ecfdf5; color: #065f46; }
+  .on  .dot { background: #10b981; }
+  .off { background: #fef2f2; color: #991b1b; }
+  .off .dot { background: #ef4444; }
+  .wait { background: #fffbeb; color: #92400e; }
+  .wait .dot { background: #f59e0b; }
+  .hint { margin-top: 12px; color: #666; line-height: 1.5; }
+  code { background: #f4f4f5; padding: 1px 4px; border-radius: 3px; }
+</style>
+
+<h1>tidy-core bridge</h1>
+<div class="file" id="file">Reading file...</div>
+<div class="pill wait" id="pill"><span class="dot"></span><span id="label">Scanning ports 9240-9249</span></div>
+<div class="hint" id="hint">Start the MCP server, then this connects on its own.</div>
+
+<script>
+  var PORTS = [9240, 9241, 9242, 9243, 9244, 9245, 9246, 9247, 9248, 9249];
+  var ws = null;
+  var meta = null;
+
+  function setState(cls, label, hint) {
+    document.getElementById('pill').className = 'pill ' + cls;
+    document.getElementById('label').textContent = label;
+    if (hint) document.getElementById('hint').innerHTML = hint;
+  }
+
+  onmessage = function (event) {
+    var msg = event.data.pluginMessage;
+    if (!msg) return;
+
+    if (msg.type === 'init') {
+      meta = msg;
+      document.getElementById('file').textContent = msg.fileName;
+      scan(0);
+      return;
+    }
+
+    if (msg.type === 'commandResult' && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify(msg));
+    }
+  };
+
+  function scan(i) {
+    if (i >= PORTS.length) {
+      setState('off', 'No server found',
+        'Nothing is listening on 9240-9249. Start the server, then reopen this plugin.<br><br>' +
+        'If you are in a browser tab, switch to <b>Figma Desktop</b>. A browser cannot reach a localhost socket.');
+      setTimeout(function () { scan(0); }, 4000);
+      return;
+    }
+
+    var port = PORTS[i];
+    var attempt = new WebSocket('ws://localhost:' + port);
+    var settled = false;
+
+    var giveUp = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      try { attempt.close(); } catch (e) {}
+      scan(i + 1);
+    }, 600);
+
+    attempt.onopen = function () {
+      if (settled) return;
+      settled = true;
+      clearTimeout(giveUp);
+      ws = attempt;
+      ws.send(JSON.stringify({
+        type: 'register',
+        pluginId: 'tidy-core-bridge',
+        fileKey: meta.fileKey,
+        fileName: meta.fileName
+      }));
+      setState('on', 'Connected on ' + port, 'Leave this open while you work.');
+    };
+
+    attempt.onerror = function () {
+      if (settled) return;
+      settled = true;
+      clearTimeout(giveUp);
+      scan(i + 1);
+    };
+
+    attempt.onclose = function () {
+      if (ws === attempt) {
+        ws = null;
+        setState('off', 'Disconnected', 'The server went away. Retrying...');
+        setTimeout(function () { scan(0); }, 2000);
+      }
+    };
+
+    attempt.onmessage = function (e) {
+      var msg = JSON.parse(e.data);
+      if (msg.type === 'command') {
+        parent.postMessage({ pluginMessage: {
+          type: 'command', id: msg.id, command: msg.command, params: msg.params
+        } }, '*');
+      }
+    };
+  }
+</script>
