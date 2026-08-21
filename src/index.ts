@@ -97,8 +97,10 @@ for (const planned of PLANNED) {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
-  await bridge.start();
-  mcpLogger.info({ port: PORT }, "Bridge listening");
+  // Report the port it actually got, not the one it asked for. They differ
+  // whenever the preferred port was busy.
+  const port = await bridge.start();
+  mcpLogger.info({ port, preferred: PORT }, "Bridge listening");
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
